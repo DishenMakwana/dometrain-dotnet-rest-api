@@ -3,6 +3,7 @@ using Movies.Api.Auth;
 using Movies.Api.Mapping;
 using Movies.Application.Services;
 using Movies.Contracts.Requests;
+using Movies.Contracts.Responses;
 
 namespace Movies.Api.Endpoints.Movies;
 
@@ -13,21 +14,26 @@ public static class UpdateMovieEndpoint
     public static IEndpointRouteBuilder MapUpdateMovie(this IEndpointRouteBuilder app)
     {
         app.MapPut(ApiEndpoints.Movies.Update,
-            async (Guid id, UpdateMovieRequest request, HttpContext context, IMovieService _movieService, IOutputCacheStore _outputCacheStore,
-                CancellationToken token) =>
-            {
-                var movie = request.MapToMovie(id);
-                var userId = context.GetUserId();
-                var updatedMovie = await _movieService.UpdateAsync(movie, userId, token);
-                if (updatedMovie is null)
+                async (Guid id, UpdateMovieRequest request, HttpContext context, IMovieService _movieService,
+                    IOutputCacheStore _outputCacheStore,
+                    CancellationToken token) =>
                 {
-                    return Results.NotFound();
-                }
+                    var movie = request.MapToMovie(id);
+                    var userId = context.GetUserId();
+                    var updatedMovie = await _movieService.UpdateAsync(movie, userId, token);
+                    if (updatedMovie is null)
+                    {
+                        return Results.NotFound();
+                    }
 
-                await _outputCacheStore.EvictByTagAsync("movies", token);
-                var response = updatedMovie.MapToResponse();
-                return TypedResults.Ok(response);
-            }).WithName(Name);
+                    await _outputCacheStore.EvictByTagAsync("movies", token);
+                    var response = updatedMovie.MapToResponse();
+                    return TypedResults.Ok(response);
+                }).WithName(Name)
+            .Produces<MovieResponse>(StatusCodes.Status201Created)
+            .Produces(StatusCodes.Status404NotFound)
+            .Produces<ValidationFailureResponse>(StatusCodes.Status400BadRequest)
+            .RequireAuthorization(AuthConstants.TrustedMemberPolicyName);
 
         return app;
     }

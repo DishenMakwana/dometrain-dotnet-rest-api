@@ -13,7 +13,8 @@ public static class DeleteMovieEndpoint
     public static IEndpointRouteBuilder MapDeleteMovie(this IEndpointRouteBuilder app)
     {
         app.MapDelete(ApiEndpoints.Movies.Delete,
-                async (Guid id, IMovieService _movieService, IOutputCacheStore _outputCacheStore, CancellationToken token) =>
+                async (Guid id, IMovieService _movieService, IOutputCacheStore _outputCacheStore,
+                    CancellationToken token) =>
                 {
                     var deleted = await _movieService.DeleteByIdAsync(id, token);
                     if (!deleted)
@@ -24,7 +25,10 @@ public static class DeleteMovieEndpoint
                     await _outputCacheStore.EvictByTagAsync("movies", token);
                     return TypedResults.Ok();
                 })
-            .WithName(Name);
+            .WithName(Name)
+            .Produces(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound)
+            .RequireAuthorization(AuthConstants.AdminUserPolicyName);
 
         return app;
     }
